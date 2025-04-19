@@ -1,0 +1,55 @@
+name: sheduled_call
+description: "A new Flutter project."
+
+publish_to: 'none'
+
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0-70.0.dev
+
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+
+  cupertino_icons: ^1.0.8
+  get: ^4.7.2
+  device_info_plus: ^11.3.3
+  http: ^1.3.0
+  flutter_screenutil: ^5.9.3
+  file_picker: ^10.1.2
+  excel: ^2.0.0
+  permission_handler: ^11.0.1
+  record: ^5.0.0
+  path_provider: ^2.1.2
+  audio_waveforms: ^1.0.6
+  fluttertoast: ^8.2.4
+  audioplayers: ^5.2.1
+  flutter_dotenv: ^5.2.1
+  supabase_flutter: ^2.8.4
+  just_audio: ^0.9.36
+
+
+
+
+
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+
+  flutter_lints: ^5.0.0
+
+flutter:
+  assets:
+    - assets/png/
+    - .env
+
+
+  uses-material-design: true
+
