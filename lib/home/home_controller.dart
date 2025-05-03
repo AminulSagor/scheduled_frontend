@@ -5,6 +5,8 @@ import 'package:sheduled_call/routes/app_routes.dart';
 class HomeController extends GetxController {
   void goTo(String route) => Get.toNamed(route);
 
+
+
   Future<void> pickDateTimeAndNavigate() async {
     final date = await showDatePicker(
       context: Get.context!,
@@ -22,7 +24,8 @@ class HomeController extends GetxController {
 
     if (time == null) return;
 
-    final scheduledTime = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final scheduledTime = DateTime(date.year, date.month, date.day, time.hour, time.minute).toUtc();
+
 
     // Navigate and pass the selected time to next page
     Get.toNamed(AppRoutes.selectNumber, arguments: {'scheduledTime': scheduledTime});

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../services/device_info_service.dart';
+import '../../services/select_number_service.dart';
 
 class SelectNumberController extends GetxController {
   final searchController = TextEditingController();
@@ -10,52 +12,57 @@ class SelectNumberController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadDummyUsers();
+    _loadUsers();
     searchController.addListener(() {
       filterUsers(searchController.text);
     });
   }
 
-  void _loadDummyUsers() {
-    allUsers = List.generate(20, (index) {
-      return {
-        'uid': 'user_$index',
-        'name': 'User $index',
-        'phone': '017000000${index.toString().padLeft(2, '0')}',
-        'photoURL': '',
-      };
-    });
-    filteredUsers = List.from(allUsers);
-    update();
+  Future<void> _loadUsers() async {
+    try {
+      final deviceId = await DeviceInfoService.getDeviceId();
+      final users = await SelectNumberService.fetchNumbers(deviceId);
+      allUsers = users;
+      filteredUsers = List.from(allUsers);
+      update();
+    } catch (e) {
+      Get.snackbar('Error', 'Could not load numbers: $e');
+      print("Could not load numbers: $e");
+    }
   }
 
   void filterUsers(String query) {
-    if (query.isEmpty) {
-      filteredUsers = List.from(allUsers);
-    } else {
-      filteredUsers = allUsers
-          .where((user) =>
-      user['name'].toLowerCase().contains(query.toLowerCase()) ||
-          user['phone'].contains(query))
-          .toList();
-    }
+    filteredUsers = query.isEmpty
+        ? List.from(allUsers)
+        : allUsers.where((user) =>
+    user['name'].toLowerCase().contains(query.toLowerCase()) ||
+        user['phone'].contains(query)).toList();
     update();
   }
 
   void toggleSelection(String uid) {
-    if (selectedUserIds.contains(uid)) {
-      selectedUserIds.remove(uid);
-    } else {
-      selectedUserIds.add(uid);
-    }
+    selectedUserIds.contains(uid)
+        ? selectedUserIds.remove(uid)
+        : selectedUserIds.add(uid);
   }
 
   void proceedToVoiceSelection() {
-    if (selectedUserIds.isNotEmpty) {
-      Get.toNamed('/select-voice', arguments: selectedUserIds.toList());
-    } else {
+    if (selectedUserIds.isEmpty) {
       Get.snackbar('No Selection', 'Please select at least one number.');
+      return;
     }
+
+    final scheduledTime = Get.arguments['scheduledTime'];
+
+    final selectedPhoneNumbers = allUsers
+        .where((user) => selectedUserIds.contains(user['uid']))
+        .map((user) => user['phone'])
+        .toList();
+
+    Get.toNamed('/select-voice', arguments: {
+      'selectedNumbers': selectedPhoneNumbers,
+      'scheduledTime': scheduledTime,
+    });
   }
 
   @override

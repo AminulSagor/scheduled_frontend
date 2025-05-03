@@ -1,28 +1,47 @@
 import 'dart:io';
-import 'package:audio_waveforms/audio_waveforms.dart';
+import 'dart:convert';
+import 'package:record/record.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class VoiceRecordingService {
-  final RecorderController recorderController = RecorderController();
+  final AudioRecorder _recorder = AudioRecorder();
+  String? _currentPath;
 
+  /// Start mono audio recording in WAV format
   Future<String> startRecording() async {
     final dir = await getApplicationDocumentsDirectory();
-    final filePath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.aac';
-    await recorderController.record(path: filePath);
+    final filePath = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.wav';
+
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) {
+      throw Exception("Microphone permission not granted.");
+    }
+
+    await _recorder.start(
+      RecordConfig(
+        encoder: AudioEncoder.wav,
+        bitRate: 16000,
+        sampleRate: 16000,
+        numChannels: 1, // ✅ Mono
+      ),
+      path: filePath, // ✅ Must be passed like this
+    );
+
+    _currentPath = filePath;
     return filePath;
   }
 
-  Future<void> stopRecording() async {
-    await recorderController.stop();
+
+  /// Stop the recording and return the file path
+  Future<String?> stopRecording() async {
+    await _recorder.stop();
+    return _currentPath;
   }
 
-  RecorderController get controller => recorderController;
-
+  /// Upload WAV file to Supabase and send metadata to backend
   Future<String> uploadToSupabase({
     required String deviceId,
     required String voiceName,
@@ -30,19 +49,22 @@ class VoiceRecordingService {
   }) async {
     final supabase = Supabase.instance.client;
     final file = File(filePath);
-    final filename = "${DateTime.now().millisecondsSinceEpoch}_${voiceName.replaceAll(' ', '_')}.aac";
+
+    if (!file.existsSync() || file.lengthSync() == 0) {
+      throw Exception("File is empty or does not exist.");
+    }
+
+    final sanitizedVoiceName =
+    voiceName.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_');
+    final filename =
+        "${DateTime.now().millisecondsSinceEpoch}_$sanitizedVoiceName.wav";
     final path = "voices/$deviceId/$filename";
 
     // Upload to Supabase Storage
-    await supabase.storage
-        .from("library app")
-        .upload(path, file);
+    await supabase.storage.from("library").upload(path, file);
 
     // Get public URL
-    final publicUrl = supabase.storage
-        .from("library app")
-        .getPublicUrl(path);
-
+    final publicUrl = supabase.storage.from("library").getPublicUrl(path);
 
     // Send metadata to backend
     final backendUrl = dotenv.env['BACKEND_URL'];
@@ -52,18 +74,11 @@ class VoiceRecordingService {
       'voiceUrl': publicUrl,
     };
 
-    print("📡 Sending metadata to backend:");
-    print("POST $backendUrl/voice/save");
-    print("Payload: $body");
-
     final response = await http.post(
       Uri.parse('$backendUrl/voice/save'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
-
-    print("📥 Response: ${response.statusCode}");
-    print("Body: ${response.body}");
 
     if (response.statusCode == 200 || response.statusCode == 201) {
       final res = jsonDecode(response.body);
@@ -75,6 +90,5 @@ class VoiceRecordingService {
     } else {
       throw Exception("Failed to save voice metadata");
     }
-
   }
 }

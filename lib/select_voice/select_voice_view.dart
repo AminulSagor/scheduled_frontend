@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:get/get.dart';
 import 'select_voice_controller.dart';
 
@@ -18,35 +19,44 @@ class SelectVoiceView extends StatelessWidget {
       ),
       body: Padding(
         padding: EdgeInsets.all(16.w),
-        child: Column(
+        child: Obx(() => Column(
           children: [
-            /// Voice list
             Expanded(
-              child: ListView.separated(
+              child: controller.voiceList.isEmpty
+                  ? const Center(child: Text("No voices available."))
+                  : ListView.separated(
                 itemCount: controller.voiceList.length,
-                separatorBuilder: (_, __) => Divider(height: 1),
+                separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (_, index) {
                   final voice = controller.voiceList[index];
+                  final isPlaying = controller.currentPlayingIndex.value == index;
+                  final icon = isPlaying ? Icons.stop : Icons.play_arrow;
+
                   return ListTile(
-                    title: Text(voice['name']!),
+                    title: Text(voice['name'] ?? 'Unnamed'),
                     leading: Obx(() => Radio<String>(
-                      value: voice['id']!,
+                      value: voice['id'] ?? '',
                       groupValue: controller.selectedVoiceId.value,
                       onChanged: (val) => controller.selectVoice(val!),
                       activeColor: Colors.black,
                     )),
                     trailing: IconButton(
-                      icon: const Icon(Icons.play_arrow, color: Colors.black),
-                      onPressed: () => controller.playVoice(voice['file']!),
+                      icon: Icon(icon, color: Colors.black),
+                      onPressed: () {
+                        final file = voice['file'];
+                        if (file != null) {
+                          controller.playVoice(file, index);
+                        } else {
+                          Fluttertoast.showToast(msg: "No voice file found.");
+                        }
+                      },
                     ),
-                    onTap: () => controller.selectVoice(voice['id']!),
+                    onTap: () => controller.selectVoice(voice['id']?.toString() ?? ''),
                   );
                 },
               ),
             ),
             SizedBox(height: 12.h),
-
-            /// Confirm button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -59,7 +69,7 @@ class SelectVoiceView extends StatelessWidget {
               ),
             ),
           ],
-        ),
+        )),
       ),
     );
   }

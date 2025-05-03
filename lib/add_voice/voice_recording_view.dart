@@ -45,7 +45,6 @@ class VoiceRecordingView extends StatelessWidget {
                 ),
                 SizedBox(height: 50.h),
 
-                /// Waveform Preview
                 AudioWaveforms(
                   size: Size(double.infinity, 80.h),
                   recorderController: controller.recorderController,
@@ -57,8 +56,6 @@ class VoiceRecordingView extends StatelessWidget {
                 ),
                 SizedBox(height: 100.h),
 
-                /// Center Recording Button
-                /// Center Recording Button
                 Obx(() => Center(
                   child: GestureDetector(
                     onTap: controller.toggleRecording,
@@ -67,7 +64,7 @@ class VoiceRecordingView extends StatelessWidget {
                       height: 100.w,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: Colors.grey.shade300, // Outer Circle
+                        color: Colors.grey.shade300,
                       ),
                       child: Center(
                         child: Container(
@@ -85,7 +82,6 @@ class VoiceRecordingView extends StatelessWidget {
 
                 SizedBox(height: 110.h),
 
-                /// Bottom Button
                 Obx(() => SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
